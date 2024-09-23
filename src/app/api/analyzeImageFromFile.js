@@ -2,6 +2,8 @@ import fs from 'fs'
 const createClient = require('@azure-rest/ai-vision-image-analysis').default;
 import { AzureKeyCredential } from '@azure/core-auth';
 import 'dotenv/config'
+console.log('VISION_KEY:', process.env.VISION_KEY);
+console.log('VISION_ENDPOINT:', process.env.VISION_ENDPOINT);
 
 const credential = new AzureKeyCredential(process.env.VISION_KEY);
 const client = createClient(process.env.VISION_ENDPOINT, credential);
