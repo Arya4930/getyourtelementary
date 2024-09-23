@@ -1,4 +1,4 @@
-const ffmpeg = require('fluent-ffmpeg')
+import ffmpeg from 'fluent-ffmpeg'
 
 function extractFrames(videopath) {
     return new Promise((resolve, reject) => {
@@ -20,4 +20,4 @@ function extractFrames(videopath) {
     });
 }
 
-module.exports = extractFrames;
+export default extractFrames;

@@ -1,7 +1,6 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs'
 const createClient = require('@azure-rest/ai-vision-image-analysis').default;
-const { AzureKeyCredential } = require('@azure/core-auth');
+import { AzureKeyCredential } from '@azure/core-auth';
 
 const credential = new AzureKeyCredential(process.env.VISION_KEY);
 const client = createClient(process.env.VISION_ENDPOINT, credential);
@@ -42,7 +41,7 @@ async function analyzeImageFromFile(imagePath) {
                 return (word.boundingPolygon[2].x < 400 && word.boundingPolygon[2].y < 1100)
             }).map(word => {
                 a.push(word.text)
-            })            
+            })
             // const filteredWords = a.filter(word => {
             //     // Check if word is a valid number (integer or float)
             //     const isNumber = /^\d+(\.\d+)?$/.test(word);
@@ -64,13 +63,18 @@ async function analyzeImageFromFile(imagePath) {
             //     }
             // });
 
-            words.forEach(word=> {
+            words.forEach(word => {
                 if (/^T\+\d{2}:\d{2}:\d{2}$/.test(word.text)) {
                     time = word.text.substring(2)
                 }
             });
-            speed = a[2]
-            altitude = a[3]
+            if (a[2] < a[3]) {
+                speed = a[3]
+                altitude = a[2]
+            } else {
+                speed = a[2]
+                altitude = a[3]
+            }
 
             const telemetryData = {
                 time: time || 'Not found',
@@ -78,6 +82,7 @@ async function analyzeImageFromFile(imagePath) {
                 altitude: parseInt(altitude) || 0,
             };
             console.log(telemetryData)
+            if( telemetryData.time === 'Not found' && telemetryData.speed === 0 && telemetryData.altitude === 0) {return;}
             return telemetryData
         } else {
             console.log('No text detected.');
@@ -87,4 +92,4 @@ async function analyzeImageFromFile(imagePath) {
     }
 }
 
-module.exports = analyzeImageFromFile
+export default analyzeImageFromFile

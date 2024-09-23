@@ -1,5 +1,5 @@
-const fs = require('fs')
-const xl = require('excel4node')
+import fs from 'fs'
+import xl from 'excel4node'
 
 const getExcelSheet = (sheet) => {
     const jsonData = JSON.parse(fs.readFileSync(sheet, 'utf8'));
@@ -37,4 +37,4 @@ const getExcelSheet = (sheet) => {
     });
 }
 
-module.exports = getExcelSheet;
+export default getExcelSheet

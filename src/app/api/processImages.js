@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const analyzeImageFromFile = require('./functions/analyzeImageFromFile')
+import fs from 'fs';
+import path from 'path';
+import analyzeImageFromFile from './analyzeImageFromFile';
 
 async function processImages(directoryPath, outputFilePath) {
     const files = fs.readdirSync(directoryPath).filter(file => file.endsWith('.png'));
@@ -17,4 +17,4 @@ async function processImages(directoryPath, outputFilePath) {
     console.log(`Results saved to ${outputFilePath}`);
 }
 
-module.exports = processImages;
+export default processImages;

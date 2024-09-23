@@ -1,9 +1,9 @@
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffmpeg = require('fluent-ffmpeg');
-require('dotenv').config();
-const getExcelSheet = require('./functions/getExcelSheet');
-const extractFrames = require('./functions/extractframes');
-const processImages = require('./functions/processImages')
+import { path as ffmpegPath }from '@ffmpeg-installer/ffmpeg';
+import ffmpeg from 'fluent-ffmpeg';
+import 'dotenv/config';
+import getExcelSheet from './getExcelSheet';
+import extractFrames from './extractframes';
+import processImages from './processImages';
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
