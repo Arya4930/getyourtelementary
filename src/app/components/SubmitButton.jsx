@@ -4,7 +4,7 @@ import handler from '../api/index'
 import { useState, useEffect } from 'react'
 
 function SubmitButton({ file }) {
-    const [blobs, setBlobs] = useState([]);
+    const [uploading, setUploading] = useState(false);
 
     const handleClick = async () => {
         // const videoPath = file.preview
@@ -12,30 +12,39 @@ function SubmitButton({ file }) {
         // const outputFilePath = 'public/results.json'
 
         // main(videoPath, directoryPath, outputFilePath)
+        if(!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setUploading(true);
+
         try {
-            const response = await fetch('/api/listblobs');
-            if (!response.ok) {
-                throw new Error('Failed to fetch blobs');
+            const response = await fetch('/api/UploadFile', {
+                method: 'POST',
+                body: formData
+            })
+
+            if(!response.ok){
+                throw new Error('Upload failed')
             }
-            const data = await response.json();
-            setBlobs(data);
-        } catch (error) {
-            console.error('Error fetching blobs:', error.message);
+
+            const data = await response.json()
+            console.log(data)
+        } catch ( error ){
+            console.error('Upload Error:', error.message)
+        } finally {
+            setUploading(false)
         }
     }
 
     return (
         <div>
             <Button className="text-lg px-8 py-3 bg-blue-500 text-white border-none rounded-lg hover:bg-blue-600"
-                variant="outlined" onClick={handleClick}
+                variant="outlined" onClick={handleClick} disabled={uploading}
             >
-                submit
+                {uploading ? 'Uploading...' : 'Submit'}
             </Button>
-            <ul>
-                {blobs.map((blob, index) => (
-                    <li key={index}>{blob.name}</li>
-                ))}
-            </ul>
         </div>
     )
 }
