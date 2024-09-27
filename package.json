@@ -8,9 +8,6 @@
     "start": "next start",
     "lint": "next lint"
   },
-  "engines": {
-    "node": "22.8.0"
-  },
   "browser": {
     "child_process": false
   },
