@@ -20,3 +20,20 @@ import { BlobServiceClient } from '@azure/storage-blob';
 // }
 
 // export default main;
+
+export default async function handler(req, res) {
+    try {
+        const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING)
+        const containerClient = blobServiceClient.getContainerClient('results');
+
+        let blobs = [];
+        let i = 1;
+        for await (const blob of containerClient.listBlobsFlat()) {
+            blobs.push({ id: i++, name: blob.name });
+        }
+
+        res.status(200).json(blobs)
+    } catch (err){
+        res.status(500).json({ error: err.message })
+    }
+}

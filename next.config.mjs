@@ -12,6 +12,11 @@ const nextConfig = {
         
         return config;
       },
+      env: {
+        VISION_KEY: process.env.VISION_KEY,
+        VISION_ENDPOINT: process.env.CONTENTFUL_ACCESS_TOKEN,
+        AZURE_STORAGE_CONNECTION_STRING: process.env.AZURE_STORAGE_CONNECTION_STRING
+      },
 };
 
 export default nextConfig;

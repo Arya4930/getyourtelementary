@@ -2,8 +2,7 @@
 
 import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
-import { Button } from '@material-tailwind/react'
-import { main } from '@/app/api/index'
+import SubmitButton from "../components/SubmitButton"
 
 export default function Dropzone({ className }) {
     const [file, setFiles] = useState([])
@@ -33,16 +32,13 @@ export default function Dropzone({ className }) {
             )}
             {file.length !== 0 &&
                 <div key={file.name} className="flex flex-col items-center space-y-4 content-center">
+                    {console.log(file.preview)}
                     <p className="mt-10">{file.name}</p>
                     <video width="750" height="500" controls >
                         <source src={file.preview} type="video/mp4" />
                     </video>
                     <div className="flex w-max items-end gap-4">
-                        <Button className="text-lg px-8 py-3 bg-blue-500 text-white border-none rounded-lg hover:bg-blue-600"
-                            variant="outlined"
-                        >
-                            submit
-                        </Button>
+                        <SubmitButton file={file} />
                     </div>
                 </div>
             }
