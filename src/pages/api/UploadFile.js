@@ -23,11 +23,19 @@ export default async function UploadBlob(req, res) {
         const blockBlobClient = containerClient.getBlockBlobClient(blobName)
 
         try {
-            const uploadBlobResponse = await blockBlobClient.uploadFile(file.filepath);
+            const onProgress = (progress) => {
+                if (progress.loadedBytes) {
+                    const percentCompleted = (progress.loadedBytes / file.size) * 100;
+                    console.log(`Progress: ${percentCompleted.toFixed(2)}%`);
+                }
+            };
+            const uploadBlobResponse = await blockBlobClient.uploadFile(filePath, {
+                onProgress
+            });
             res.status(200).json({ message: `Upload block blob ${blobName} successfully`, requestId: uploadBlobResponse.requestId });
         } catch (uploadError) {
             console.error('Error uploading blob:', uploadError);
             res.status(500).json({ error: uploadError.message || 'Error uploading blob' });
-        }        
+        }
     })
 }
