@@ -26,8 +26,8 @@ export default async function UploadBlob(req, res) {
             const uploadBlobResponse = await blockBlobClient.uploadFile(file.filepath);
             res.status(200).json({ message: `Upload block blob ${blobName} successfully`, requestId: uploadBlobResponse.requestId });
         } catch (uploadError) {
-            console.error('Error uploading blob:', uploadError.message);
-            res.status(500).json({ error: 'Error uploading blob' });
-        }
+            console.error('Error uploading blob:', uploadError);
+            res.status(500).json({ error: uploadError.message || 'Error uploading blob' });
+        }        
     })
 }
