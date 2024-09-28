@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react'
 
 function SubmitButton({ file }) {
     const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0)
+    const [message, setMessage] = useState('')
 
     const handleClick = async () => {
         // const videoPath = file.preview
@@ -19,23 +21,33 @@ function SubmitButton({ file }) {
 
         setUploading(true);
 
-        try {
-            const response = await fetch('/api/UploadFile', {
-                method: 'POST',
-                body: formData
-            })
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST','/api/UploadFile', true)
 
-            if(!response.ok){
-                throw new Error('Upload failed')
+        xhr.upload.onprogress = function (event){
+            if (event.lengthComputable) {
+                const percentCompleted = Math.round((event.loaded / event.total) * 100);
+                setProgress(percentCompleted);
             }
+        }
 
-            const data = await response.json()
-            console.log(data)
-        } catch ( error ){
-            console.error('Upload Error:', error.message)
-        } finally {
+        xhr.onload = function (event) {
+            if(xhr.status === 200){
+                const response = JSON.parse(xhr.responseText);
+                setMessage(response.message || "Upload Complete")
+                setUploading(false)
+            } else {
+                setMessage("Upload Failed")
+                setUploading(false)
+            }
+        }
+
+        xhr.onerror = function () {
+            setMessage('Upload Error')
             setUploading(false)
         }
+
+        xhr.send(formData)
     }
 
     return (
@@ -45,6 +57,13 @@ function SubmitButton({ file }) {
             >
                 {uploading ? 'Uploading...' : 'Submit'}
             </Button>
+            {uploading && (
+                <div>
+                    <p>Uploading... {progress}%</p>
+                    <progress value={progress} max="100">{progress}%</progress>
+                </div>
+            )}
+            {message && <p>{message}</p>}
         </div>
     )
 }
