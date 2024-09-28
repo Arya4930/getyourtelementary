@@ -1,12 +1,12 @@
 // import main from '@/app/api/index'
 import { Button } from '@material-tailwind/react'
-import handler from '../api/index'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 function SubmitButton({ file }) {
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0)
     const [message, setMessage] = useState('')
+    const [eventSource, setEventSource] = useState(null)
 
     const handleClick = async () => {
         // const videoPath = file.preview
@@ -14,7 +14,10 @@ function SubmitButton({ file }) {
         // const outputFilePath = 'public/results.json'
 
         // main(videoPath, directoryPath, outputFilePath)
-        if(!file) return;
+        if (!file) {
+            console.log('No file selected');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('file', file);
@@ -22,24 +25,38 @@ function SubmitButton({ file }) {
         setUploading(true);
 
         const xhr = new XMLHttpRequest()
-        xhr.open('POST','/api/UploadFile', true)
+        xhr.open('POST', '/api/UploadFile', true)
 
-        xhr.upload.onprogress = function (event){
+
+        xhr.upload.onprogress = function (event) {
             if (event.lengthComputable) {
+                // console.log(`Loaded: ${event.loaded} / Total: ${event.total}`); // Log both
                 const percentCompleted = Math.round((event.loaded / event.total) * 100);
                 setProgress(percentCompleted);
+                // console.log(`Progress: ${percentCompleted}%`);
             }
         }
 
         xhr.onload = function (event) {
-            if(xhr.status === 200){
-                const response = JSON.parse(xhr.responseText);
-                setMessage(response.message || "Upload Complete")
-                setUploading(false)
-            } else {
-                setMessage("Upload Failed")
-                setUploading(false)
-            }
+            const responseLines = xhr.responseText.split('\n');
+            
+            responseLines.forEach(line => {
+                if (line.startsWith('data: ')) {
+                    const jsonString = line.substring(6);
+                    try {
+                        const response = JSON.parse(jsonString);
+                        
+                        if (response.progress !== undefined) {
+                            setProgress(response.progress);
+                        } else if (response.message) {
+                            setMessage(response.message || "Upload Complete");
+                        }
+                    } catch (error) {
+                        console.error("Failed to parse JSON:", error);
+                        setMessage("Invalid response from server");
+                    }
+                }
+            });
         }
 
         xhr.onerror = function () {
@@ -48,6 +65,41 @@ function SubmitButton({ file }) {
         }
 
         xhr.send(formData)
+
+        const source = new EventSource('/api/UploadFile')
+        setEventSource(source)
+
+        source.onopen = () => {
+            console.log('SSE connection opened');
+        };
+        
+        source.onmessage = (event) => {
+            console.log('Received message:', event.data); // Log the raw event data
+            try {
+                const data = JSON.parse(event.data);
+                console.log(data);
+                if (data.progress) {
+                    setProgress(data.progress);
+                } else if (data.message) {
+                    setMessage(data.message);
+                    setUploading(false);
+                    source.close(); // Close the SSE connection when done
+                } else if (data.error) {
+                    setMessage(data.error);
+                    setUploading(false);
+                    source.close(); // Close on error
+                }
+            } catch (error) {
+                console.error("Failed to parse JSON:", error);
+            }
+        };
+        
+        source.onerror = (error) => {
+            console.error('SSE error:', error);
+            setMessage('Error in SSE connection');
+            setUploading(false);
+            source.close(); // Close on error
+        };
     }
 
     return (
