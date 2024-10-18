@@ -16,7 +16,7 @@ function SubmitButton({ file }) {
         setProgress(0); // Reset progress before starting upload
 
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/UploadBlob', true); // Make sure this matches your API route
+        xhr.open('POST', '/api/UploadFile', true); // Make sure this matches your API route
 
         // Update progress as the upload progresses
         xhr.upload.onprogress = function (event) {
@@ -27,7 +27,7 @@ function SubmitButton({ file }) {
         };
 
         // Create an EventSource to listen for progress updates
-        const eventSource = new EventSource('/api/UploadBlob'); // Use the correct API route
+        const eventSource = new EventSource('/api/UploadFile'); // Use the correct API route
 
         eventSource.onmessage = function (event) {
             const data = JSON.parse(event.data);

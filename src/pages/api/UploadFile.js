@@ -1,17 +1,13 @@
-import { BlobServiceClient, BlockBlobParallelUploadOptions } from "@azure/storage-blob";
+import { BlobServiceClient } from "@azure/storage-blob";
 import formidable from "formidable";
+import fs from "fs"; // Ensure fs is imported to read the file stream
 
-// Initialize the BlobServiceClient with your connection string
-const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
-
-// Next.js API configuration for file parsing
 export const config = {
     api: {
-        bodyParser: false // Disable the default body parser to handle file uploads
+        bodyParser: false
     }
-}
+};
 
-// Main function to handle blob uploads
 export default async function UploadBlob(req, res) {
     const form = new formidable.IncomingForm();
 
@@ -22,7 +18,7 @@ export default async function UploadBlob(req, res) {
             return;
         }
 
-        const file = files.file; // Expecting a file upload under the key 'file'
+        const file = files.file; // Assuming the input field name is 'file'
         if (!file) {
             res.status(400).json({ error: 'No file uploaded' });
             res.end();
@@ -30,30 +26,33 @@ export default async function UploadBlob(req, res) {
         }
 
         try {
+            const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
             const containerClient = blobServiceClient.getContainerClient('video-frames');
             const blockBlobClient = containerClient.getBlockBlobClient(file.originalFilename);
-        
+
             // Set headers for SSE
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
-        
-            // Function to handle progress
-            const onProgress = (progress) => {
-                if (progress.loadedBytes) {
-                    const percentCompleted = (progress.loadedBytes / file.size) * 100;
-                    res.write(`data: ${JSON.stringify({ progress: percentCompleted.toFixed(2) })}\n\n`);
-                }
-            };
 
-            // Upload the blob with progress reporting
-            await blockBlobClient.uploadFile(file.filepath, {
-                onProgress,
-                blockSize: 4 * 1024 * 1024, // 4 MiB block size
-                concurrency: 2, // Max number of parallel transfers
-                maxSingleShotSize: 8 * 1024 * 1024 // 8 MiB single transfer size
-            });
-        
+            const maxConcurrency = 5; // max uploading concurrency
+            const blockSize = 4 * 1024 * 1024; // the block size in the uploaded block blob
+
+            // Start the upload stream
+            await blockBlobClient.uploadStream(
+                fs.createReadStream(file.filepath, { highWaterMark: blockSize }),
+                blockSize,
+                maxConcurrency,
+                {
+                    onProgress: (ev) => {
+                        // Emit progress to the client
+                        const percentCompleted = (ev.loadedBytes / file.size) * 100;
+                        res.write(`data: ${JSON.stringify({ progress: percentCompleted.toFixed(2) })}\n\n`);
+                        console.log(`data: ${JSON.stringify({ progress: percentCompleted.toFixed(2) })}\n`)
+                    }
+                }
+            );
+
             // Send final success message
             res.write(`data: ${JSON.stringify({ message: `Upload block blob ${file.originalFilename} successfully` })}\n\n`);
             res.end();
@@ -61,6 +60,6 @@ export default async function UploadBlob(req, res) {
             console.error('Error uploading blob:', uploadError);
             res.write(`data: ${JSON.stringify({ error: uploadError.message || 'Error uploading blob' })}\n\n`);
             res.end();
-        }        
+        }
     });
 }
