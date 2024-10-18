@@ -1,54 +1,77 @@
-// import main from '@/app/api/index'
-import { Button } from '@material-tailwind/react'
-import handler from '../api/index'
-import { useState, useEffect } from 'react'
+import { Button } from '@material-tailwind/react';
+import { useState } from 'react';
 
 function SubmitButton({ file }) {
     const [uploading, setUploading] = useState(false);
-    const [progress, setProgress] = useState(0)
-    const [message, setMessage] = useState('')
+    const [progress, setProgress] = useState(0);
+    const [message, setMessage] = useState('');
 
     const handleClick = async () => {
-        // const videoPath = file.preview
-        // const directoryPath = '/public/'
-        // const outputFilePath = 'public/results.json'
 
-        // main(videoPath, directoryPath, outputFilePath)
-        if(!file) return;
+        if (!file) return;
 
         const formData = new FormData();
         formData.append('file', file);
 
         setUploading(true);
+        setProgress(0); // Reset progress before starting upload
 
-        const xhr = new XMLHttpRequest()
-        xhr.open('POST','/api/UploadFile', true)
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/UploadFile', true);
 
-        xhr.upload.onprogress = function (event){
+        // Update progress as the upload progresses
+        xhr.upload.onprogress = function (event) {
             if (event.lengthComputable) {
                 const percentCompleted = Math.round((event.loaded / event.total) * 100);
                 setProgress(percentCompleted);
             }
-        }
+        };
 
-        xhr.onload = function (event) {
-            if(xhr.status === 200){
-                const response = JSON.parse(xhr.responseText);
-                setMessage(response.message || "Upload Complete")
-                setUploading(false)
-            } else {
-                setMessage("Upload Failed")
-                setUploading(false)
+        const eventSource = new EventSource('/api/UploadFile'); // Connect to your upload endpoint
+
+        eventSource.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            if (data.progress) {
+                setProgress(data.progress);
             }
-        }
+            if (data.message) {
+                setMessage(data.message);
+                setUploading(false);
+                eventSource.close(); // Close the connection once the upload is complete
+            }
+        };
+
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                let response;
+                try {
+                    if (xhr.responseText.startsWith("data:")) {
+                        const dataLine = xhr.responseText.split('\n')[0];
+                        const jsonData = dataLine.replace('data: ', '');
+                        response = JSON.parse(jsonData);
+                    } else {
+                        response = JSON.parse(xhr.responseText); // Standard JSON response
+                    }
+                    setMessage("Upload Complete");
+                } catch (parseError) {
+                    console.error('Error parsing JSON:', parseError);
+                    console.log('Response Text was:', xhr.responseText); // Log for debugging
+                    setMessage('Invalid server response');
+                }
+                setUploading(false);
+            } else {
+                setMessage("Upload Failed");
+                setUploading(false);
+            }
+        };
 
         xhr.onerror = function () {
-            setMessage('Upload Error')
-            setUploading(false)
-        }
+            setMessage('Upload Error');
+            setUploading(false);
+        };
 
-        xhr.send(formData)
-    }
+        xhr.send(formData);
+    };
 
     return (
         <div>
@@ -65,7 +88,7 @@ function SubmitButton({ file }) {
             )}
             {message && <p>{message}</p>}
         </div>
-    )
+    );
 }
 
 export default SubmitButton;
