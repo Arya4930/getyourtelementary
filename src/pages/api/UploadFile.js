@@ -32,10 +32,6 @@ export default async function UploadBlob(req, res) {
             res.setHeader('Connection', 'keep-alive');
             res.flushHeaders();
 
-            const keepAlive = setInterval(() => {
-                res.write(': keep-alive\n\n');
-            }, 30000);
-
             const onProgress = (progress) => {
                 if (progress.loadedBytes) {
                     const percentCompleted = (progress.loadedBytes / file.size) * 100;
@@ -52,7 +48,6 @@ export default async function UploadBlob(req, res) {
 
             res.write(`data: ${JSON.stringify({ message: `Upload block blob ${blobName} successfully`, requestId: uploadBlobResponse.requestId })}\n\n`);
             res.end();
-            clearInterval(keepAlive);
         } catch (uploadError) {
             console.error('Error uploading blob:', uploadError);
             res.write(`data: ${JSON.stringify({ error: uploadError.message || 'Error uploading blob' })}\n\n`);
