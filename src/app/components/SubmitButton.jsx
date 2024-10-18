@@ -7,7 +7,6 @@ function SubmitButton({ file }) {
     const [message, setMessage] = useState('');
 
     const handleClick = async () => {
-
         if (!file) return;
 
         const formData = new FormData();
@@ -17,7 +16,7 @@ function SubmitButton({ file }) {
         setProgress(0); // Reset progress before starting upload
 
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/UploadFile', true);
+        xhr.open('POST', '/api/UploadBlob', true); // Make sure this matches your API route
 
         // Update progress as the upload progresses
         xhr.upload.onprogress = function (event) {
@@ -27,55 +26,34 @@ function SubmitButton({ file }) {
             }
         };
 
-        const eventSource = new EventSource('/api/UploadFile'); // Connect to your upload endpoint
+        // Create an EventSource to listen for progress updates
+        const eventSource = new EventSource('/api/UploadBlob'); // Use the correct API route
 
         eventSource.onmessage = function (event) {
             const data = JSON.parse(event.data);
             if (data.progress) {
-                setProgress(data.progress);
+                setProgress(data.progress); // Update progress from SSE
             }
             if (data.message) {
                 setMessage(data.message);
                 setUploading(false);
                 eventSource.close(); // Close the connection once the upload is complete
             }
+            if (data.error) {
+                setMessage(data.error);
+                setUploading(false);
+                eventSource.close(); // Close on error
+            }
         };
 
-        xhr.onload = function (event) {
-            console.log('Response Text:', xhr.responseText); // Log the response
-        
+        xhr.onload = function () {
             if (xhr.status === 200) {
-                let response;
-                try {
-                    if (xhr.responseText.startsWith("data:")) {
-                        const dataLines = xhr.responseText.split('\n');
-                        dataLines.forEach(line => {
-                            if (line.startsWith("data:")) {
-                                const jsonData = line.replace('data: ', '');
-                                response = JSON.parse(jsonData);
-                                console.log('Progress:', response.progress);
-                                // Handle progress updates
-                                if (response.progress) {
-                                    setProgress(response.progress); // Assuming you have a state for progress
-                                }
-                            }
-                        });
-                    } else {
-                        response = JSON.parse(xhr.responseText); // Handle any other standard JSON response
-                    }
-                    setMessage("Upload Complete");
-                } catch (parseError) {
-                    console.error('Error parsing JSON:', parseError);
-                    console.log('Response Text was:', xhr.responseText); // Log for debugging
-                    setMessage('Invalid server response');
-                }
-                setUploading(false);
+                console.log('Upload successful:', xhr.responseText);
             } else {
                 setMessage("Upload Failed");
                 setUploading(false);
             }
         };
-        
 
         xhr.onerror = function () {
             setMessage('Upload Error');
@@ -87,8 +65,11 @@ function SubmitButton({ file }) {
 
     return (
         <div>
-            <Button className="text-lg px-8 py-3 bg-blue-500 text-white border-none rounded-lg hover:bg-blue-600"
-                variant="outlined" onClick={handleClick} disabled={uploading}
+            <Button
+                className="text-lg px-8 py-3 bg-blue-500 text-white border-none rounded-lg hover:bg-blue-600"
+                variant="outlined"
+                onClick={handleClick}
+                disabled={uploading}
             >
                 {uploading ? 'Uploading...' : 'Submit'}
             </Button>
