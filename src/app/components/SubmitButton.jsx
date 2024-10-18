@@ -41,16 +41,27 @@ function SubmitButton({ file }) {
             }
         };
 
-        xhr.onload = function () {
+        xhr.onload = function (event) {
+            console.log('Response Text:', xhr.responseText); // Log the response
+        
             if (xhr.status === 200) {
                 let response;
                 try {
                     if (xhr.responseText.startsWith("data:")) {
-                        const dataLine = xhr.responseText.split('\n')[0];
-                        const jsonData = dataLine.replace('data: ', '');
-                        response = JSON.parse(jsonData);
+                        const dataLines = xhr.responseText.split('\n');
+                        dataLines.forEach(line => {
+                            if (line.startsWith("data:")) {
+                                const jsonData = line.replace('data: ', '');
+                                response = JSON.parse(jsonData);
+                                console.log('Progress:', response.progress);
+                                // Handle progress updates
+                                if (response.progress) {
+                                    setProgress(response.progress); // Assuming you have a state for progress
+                                }
+                            }
+                        });
                     } else {
-                        response = JSON.parse(xhr.responseText); // Standard JSON response
+                        response = JSON.parse(xhr.responseText); // Handle any other standard JSON response
                     }
                     setMessage("Upload Complete");
                 } catch (parseError) {
@@ -64,6 +75,7 @@ function SubmitButton({ file }) {
                 setUploading(false);
             }
         };
+        
 
         xhr.onerror = function () {
             setMessage('Upload Error');
