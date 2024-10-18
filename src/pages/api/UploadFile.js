@@ -28,21 +28,22 @@ export default async function UploadBlob(req, res) {
         try {
             const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
             const containerClient = blobServiceClient.getContainerClient('video-frames');
-            const blockBlobClient = containerClient.getBlockBlobClient(file.originalFilename);
+            const blockBlobClient = containerClient.getBlockBlobClient(`${file.originalFilename}/${file.originalFilename}`);
 
             // Set headers for SSE
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
 
-            const maxConcurrency = 5; // max uploading concurrency
-            const blockSize = 4 * 1024 * 1024; // the block size in the uploaded block blob
+            const maxConcurrency = 5;
+            const blockSize = 4 * 1024 * 1024;
+            const maxBlobSize = 10 * 1024 * 1024 * 1024
 
             // Start the upload stream
             await blockBlobClient.uploadStream(
                 fs.createReadStream(file.filepath, { highWaterMark: blockSize }),
                 blockSize,
-                maxConcurrency,
+                Math.ceil(maxBlobSize / blockSize),
                 {
                     onProgress: (ev) => {
                         // Emit progress to the client
